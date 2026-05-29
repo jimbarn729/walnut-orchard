@@ -212,7 +212,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin, Wi
 
   Future<void> _daySkip() async {
     await _appState.nextDay();
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _selectTree(String? id) => setState(() => _selectedTreeId = id);
@@ -239,31 +241,37 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin, Wi
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Невозможно выставить дерево на продажу')));
       return;
     }
+    setState(() {});
     _safePlay('sounds/click.mp3');
   }
 
   Future<void> _cancelSell(String treeId) async {
     await _appState.cancelSell(treeId);
+    setState(() {});
     _safePlay('sounds/click.mp3');
   }
 
   Future<void> _buyTree(String treeId) async {
     await _appState.buyTree(treeId);
+    setState(() {});
     _safePlay('sounds/click.mp3');
   }
 
   Future<void> _sellResource(String resourceType, int quantity, double pricePerUnit) async {
     await _appState.sellResource(resourceType, quantity, pricePerUnit);
+    setState(() {});
     _safePlay('sounds/click.mp3');
   }
 
   Future<void> _buyResource(String lotId) async {
     await _appState.buyResource(lotId);
+    setState(() {});
     _safePlay('sounds/click.mp3');
   }
 
   Future<void> _cancelResourceSell(String lotId) async {
     await _appState.cancelResourceSell(lotId);
+    setState(() {});
     _safePlay('sounds/click.mp3');
   }
 
@@ -302,7 +310,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin, Wi
             FarmScreen(game: game, selectedId: _selectedTreeId, onDaySkip: _daySkip, onSelectTree: _selectTree, onAction: (treeId, action) { _treeAction(treeId, action); return true; }, audioService: _audioService),
             MarketScreen(game: game, userEmail: _appState.userEmail, onBuyTree: _buyTree, onCancelTreeSell: _cancelSell, onBuyResource: _buyResource, onCancelResourceSell: _cancelResourceSell, onSellResource: _sellResource, audioService: _audioService),
             LuckyScreen(game: game, onBurned: (id) async { await _appState.burnTree(id); _audioService.playClick(); }, audioService: _audioService),
-            CollectionScreen(game: game, userEmail: _appState.userEmail, onSelectTree: _selectTree, onPlant: (id) async { if (await _appState.plantTree(id)) setState(() {}); _audioService.playClick(); }, onSell: _sellTree, onCancelSell: _cancelSell, leaderboard: game.leaderboard, onHarvest: (id) async { await _appState.harvestTree(id); _audioService.playClick(); setState(() {}); }, audioService: _audioService),
+            CollectionScreen(game: game, userEmail: _appState.userEmail, onSelectTree: _selectTree, onPlant: (id) async { if (await _appState.plantTree(id)) setState(() {}); _audioService.playClick(); }, onSell: _sellTree, onCancelSell: _cancelSell, leaderboard: game.leaderboard, onHarvest: (id) async { await _appState.harvestTree(id); _audioService.playCoins(); setState(() {}); }, audioService: _audioService),
             WalletScreen(
               solBalance: game.solBalance,
               wlntBalance: game.wlntBalance,
@@ -694,7 +702,9 @@ class _NftTreeCardState extends State<NftTreeCard> with TickerProviderStateMixin
       }
       if (status == AnimationStatus.dismissed) {
         _currentActionType = null;
-        if (mounted) setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       }
     });
 
@@ -706,7 +716,9 @@ class _NftTreeCardState extends State<NftTreeCard> with TickerProviderStateMixin
     if (event != null && event.treeId == widget.tree.id) {
       _currentActionType = event.type;
       _actionAnimCtrl.forward(from: 0.0);
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -1195,8 +1207,10 @@ class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStat
   String _result = '';
   static const bet = 100.0;
   bool _spinning = false;
+  bool _showConfetti = false;
   double _rotation = 0.0;
   late final AnimationController _spinController;
+  List<_ConfettiDot> _confetti = [];
   static const _extendedOutcomes = [
     // type: 'nothing' | 'wlnt' | 'water' | 'fertilizer' | 'bird'
     _OutcomeExt(type: 'nothing', weight: 45, amount: 0, label: 'Пусто'),
@@ -1231,7 +1245,9 @@ class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStat
   Future<void> _spin() async {
     if (_spinning) return;
     if (widget.game.wlntBalance < bet) {
-      setState(() => _result = 'Недостаточно средств');
+      setState(() {
+        _result = 'Недостаточно средств';
+      });
       return;
     }
     _spinning = true;
@@ -1240,14 +1256,10 @@ class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStat
       widget.game.wlntBalance -= bet;
     });
 
-    // старт звука
-    try { widget.audioService.playAsset('sounds/spin.mp3'); } catch (_) {}
-
-    // анимация вращения
+    widget.audioService.playClick();
     _spinController.reset();
     await _spinController.forward();
 
-    // выбор по весам
     final totalWeight = _extendedOutcomes.fold<double>(0.0, (s, e) => s + e.weight);
     final rnd = Random().nextDouble() * totalWeight;
     double acc = 0;
@@ -1260,7 +1272,6 @@ class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStat
       }
     }
 
-    // Применяем выигрыш
     if (picked.type == 'wlnt') {
       widget.game.wlntBalance += picked.amount.toDouble();
       setState(() => _result = 'Вы выиграли: ${picked.label}');
@@ -1277,8 +1288,12 @@ class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStat
       setState(() => _result = 'Ничего не выпало');
     }
 
-    try { widget.audioService.playAsset('sounds/win.mp3'); } catch (_) {}
-    await Future.delayed(const Duration(milliseconds: 350));
+    widget.audioService.playCoins();
+    if (picked.type != 'nothing') {
+      _startConfetti();
+    }
+
+    await Future.delayed(const Duration(milliseconds: 600));
     _spinning = false;
     setState(() {});
   }
@@ -1293,27 +1308,94 @@ class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStat
     ));
   }
 
-  @override Widget build(BuildContext context) => SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-    Text('🍀 УДАЧА', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.text, shadows: [Shadow(blurRadius: 12, color: AppTheme.gold.withOpacity(0.5))])),
-    const SizedBox(height: 16), Text('Баланс: ${_fmt(widget.game.wlntBalance)} WLNT', style: const TextStyle(color: AppTheme.gold, fontSize: 16)),
-    const SizedBox(height: 16), const Text('Ставка: 100 WLNT', style: TextStyle(color: AppTheme.text)), const SizedBox(height: 8),
-    const Text('Вероятности:', style: TextStyle(color: AppTheme.muted)),
-    ..._extendedOutcomes.map((o) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(o.label, style: const TextStyle(color: AppTheme.text)), Text('${(o.prob*100).toStringAsFixed(0)}%', style: const TextStyle(color: AppTheme.muted))]))),
-    const SizedBox(height: 16),
-    Column(children: [
-      AnimatedRotation(duration: const Duration(milliseconds: 600), turns: _rotation, child: Icon(Icons.casino, size: 56, color: Colors.amber)),
-      const SizedBox(height: 8),
-      ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _spinning ? null : _spin, icon: const Icon(Icons.casino, color: Colors.black), label: Text(_spinning ? 'Ждём...' : 'КРУТИТЬ', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black))),
-    ]),
-    const SizedBox(height: 16), Text(_result, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.text)),
-    const SizedBox(height: 32), const Divider(color: AppTheme.panelBorder), const SizedBox(height: 16),
-    const Text('Инвентарь:', style: TextStyle(color: AppTheme.muted)),
-    _Res('💧 Вода', widget.game.inventory['water_unit'] ?? 0), _Res('🌿 Удобрения', widget.game.inventory['fertilizer_unit'] ?? 0), _Res('🐦 Птицы', widget.game.inventory['bird_unit'] ?? 0),
-    const SizedBox(height: 24),
-    OutlinedButton.icon(style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _burnDialog, icon: const Icon(Icons.local_fire_department, color: Colors.red), label: const Text('Сжечь NFT', style: TextStyle(color: Colors.red))),
-  ])));
+  @override Widget build(BuildContext context) {
+    final totalWeight = _extendedOutcomes.fold<double>(0.0, (sum, item) => sum + item.weight);
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('🍀 УДАЧА', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.text, shadows: [Shadow(blurRadius: 12, color: AppTheme.gold.withOpacity(0.5))])),
+          const SizedBox(height: 16),
+          Text('Баланс: ${_fmt(widget.game.wlntBalance)} WLNT', style: const TextStyle(color: AppTheme.gold, fontSize: 16)),
+          const SizedBox(height: 16),
+          const Text('Ставка: 100 WLNT', style: TextStyle(color: AppTheme.text)),
+          const SizedBox(height: 8),
+          const Text('Колесо удачи', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.text)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 320,
+            child: Stack(alignment: Alignment.center, children: [
+              Transform.rotate(
+                angle: _rotation * 2 * pi,
+                child: CustomPaint(size: const Size(280, 280), painter: _LuckyWheelPainter(_extendedOutcomes)),
+              ),
+              const Positioned(top: 14, child: Icon(Icons.arrow_drop_down, size: 42, color: Colors.white)),
+              if (_showConfetti) _buildConfetti(),
+            ]),
+          ),
+          const SizedBox(height: 16),
+          const Text('Вероятности:', style: TextStyle(color: AppTheme.muted)),
+          const SizedBox(height: 8),
+          ..._extendedOutcomes.map((o) {
+            final percent = (o.weight / totalWeight) * 100;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(o.label, style: const TextStyle(color: AppTheme.text)), Text('${percent.toStringAsFixed(0)}%', style: const TextStyle(color: AppTheme.muted))]),
+            );
+          }),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: _spinning ? null : _spin,
+            icon: const Icon(Icons.casino, color: Colors.black),
+            label: Text(_spinning ? 'Ждём...' : 'КРУТИТЬ', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black)),
+          ),
+          const SizedBox(height: 16),
+          Text(_result, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.text)),
+          const SizedBox(height: 32),
+          const Divider(color: AppTheme.panelBorder),
+          const SizedBox(height: 16),
+          const Text('Инвентарь:', style: TextStyle(color: AppTheme.muted)),
+          _Res('💧 Вода', widget.game.inventory['water_unit'] ?? 0),
+          _Res('🌿 Удобрения', widget.game.inventory['fertilizer_unit'] ?? 0),
+          _Res('🐦 Птицы', widget.game.inventory['bird_unit'] ?? 0),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: _burnDialog,
+            icon: const Icon(Icons.local_fire_department, color: Colors.red),
+            label: const Text('Сжечь NFT', style: TextStyle(color: Colors.red)),
+          ),
+        ]),
+      ),
+    );
+  }
 
   Widget _Res(String label, int count) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: AppTheme.text)), Text('$count', style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.w700))]));
+
+  void _startConfetti() {
+    setState(() {
+      _showConfetti = true;
+      _confetti = List.generate(24, (index) => _ConfettiDot(
+        offset: Offset(Random().nextDouble() * 280, Random().nextDouble() * 280),
+        color: [Colors.amber, Colors.green, Colors.blue, Colors.pink, Colors.orange][index % 5],
+        radius: 4 + Random().nextDouble() * 5,
+      ));
+    });
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() {
+          _showConfetti = false;
+        });
+      }
+    });
+  }
+
+  Widget _buildConfetti() {
+    if (!_showConfetti) return const SizedBox.shrink();
+    return Positioned.fill(child: CustomPaint(painter: _ConfettiPainter(_confetti)));
+  }
+
   String _fmt(double v) { final s = v.toStringAsFixed(0), b = StringBuffer(); for (int i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 == 0) b.write(' '); b.write(s[i]); } return b.toString(); }
 }
 
@@ -1323,6 +1405,74 @@ class _OutcomeExt {
   final int amount;
   final String label;
   const _OutcomeExt({required this.type, required this.weight, required this.amount, required this.label});
+}
+
+class _ConfettiDot {
+  final Offset offset;
+  final Color color;
+  final double radius;
+  const _ConfettiDot({required this.offset, required this.color, required this.radius});
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final List<_ConfettiDot> dots;
+  _ConfettiPainter(this.dots);
+  @override void paint(Canvas canvas, Size size) {
+    for (final dot in dots) {
+      final paint = Paint()..color = dot.color.withOpacity(0.9);
+      canvas.drawCircle(dot.offset, dot.radius, paint);
+    }
+  }
+
+  @override bool shouldRepaint(covariant _ConfettiPainter old) => true;
+}
+
+class _LuckyWheelPainter extends CustomPainter {
+  final List<_OutcomeExt> outcomes;
+  _LuckyWheelPainter(this.outcomes);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = min(size.width, size.height) / 2;
+    final totalWeight = outcomes.fold<double>(0.0, (total, item) => total + item.weight);
+    double startAngle = -pi / 2;
+    for (final outcome in outcomes) {
+      final sweep = 2 * pi * outcome.weight / totalWeight;
+      final paint = Paint()..color = _colorForType(outcome.type);
+      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, sweep, true, paint);
+      final labelAngle = startAngle + sweep / 2;
+      final labelOffset = center + Offset(cos(labelAngle), sin(labelAngle)) * radius * 0.65;
+      final textPainter = TextPainter(
+        text: TextSpan(text: outcome.label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: radius * 0.6);
+      canvas.save();
+      canvas.translate(labelOffset.dx, labelOffset.dy);
+      canvas.rotate(labelAngle + pi / 2);
+      textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+      canvas.restore();
+      startAngle += sweep;
+    }
+    final borderPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 4..color = Colors.white.withOpacity(0.9);
+    canvas.drawCircle(center, radius, borderPaint);
+    final centerPaint = Paint()..color = Colors.white.withOpacity(0.95);
+    canvas.drawCircle(center, radius * 0.16, centerPaint);
+  }
+
+  Color _colorForType(String type) {
+    return switch (type) {
+      'wlnt' => const Color(0xFFFFD740),
+      'water' => const Color(0xFF00E5FF),
+      'fertilizer' => const Color(0xFF69F0AE),
+      'bird' => const Color(0xFFFF80AB),
+      _ => const Color(0xFF616161),
+    };
+  }
+
+  @override
+  bool shouldRepaint(covariant _LuckyWheelPainter old) => old.outcomes != outcomes;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
