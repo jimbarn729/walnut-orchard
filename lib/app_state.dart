@@ -37,6 +37,13 @@ class AppState extends ChangeNotifier {
     final savedEngine = await persistence.loadGame();
     if (savedEngine != null && userEmail.isNotEmpty) {
       engine = savedEngine;
+      // Normalize loaded trees: a planted tree cannot be for sale.
+      for (var i = 0; i < engine.trees.length; i++) {
+        final t = engine.trees[i];
+        if (t.forSale && t.isPlanted) {
+          engine.trees[i] = t.copyWith(forSale: false, price: 0.0);
+        }
+      }
       logged = true;
     } else {
       engine = GameEngine.initial(playerEmail: userEmail.isNotEmpty ? userEmail : 'player', initialWlnt: 12450.75 + (referralCode.isNotEmpty ? 1000 : 0));
@@ -109,10 +116,12 @@ class AppState extends ChangeNotifier {
     return ok;
   }
 
-  Future<void> sellTree(String id, double price) async {
-    engine.sellTree(id, price);
+  Future<bool> sellTree(String id, double price) async {
+    final ok = engine.sellTree(id, price);
+    if (!ok) return false;
     await saveGame();
     notifyListeners();
+    return true;
   }
 
   Future<void> cancelSell(String id) async {

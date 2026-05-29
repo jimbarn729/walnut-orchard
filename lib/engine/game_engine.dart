@@ -468,6 +468,8 @@ class GameEngine {
   bool plantTree(String id) {
     final i = trees.indexWhere((t) => t.id == id);
     if (i == -1 || trees[i].isPlanted) return false;
+    // Prevent planting a tree that is currently listed for sale
+    if (trees[i].forSale) return false;
     trees[i] = trees[i].copyWith(
       isPlanted: true,
       status: TreeStatus.growth,
@@ -479,10 +481,14 @@ class GameEngine {
     return true;
   }
 
-  void sellTree(String id, double price) {
+  bool sellTree(String id, double price) {
     final i = trees.indexWhere((t) => t.id == id);
-    if (i == -1) return;
+    if (i == -1) return false;
+    // Do not allow selling a tree that is currently planted (in growth/rest cycle).
+    // New NFTs (isPlanted == false) can be listed immediately.
+    if (trees[i].isPlanted) return false;
     trees[i] = trees[i].copyWith(forSale: true, price: price);
+    return true;
   }
 
   void cancelSell(String id) {

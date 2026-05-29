@@ -175,7 +175,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin, Wi
   void _startRealtimeTimer() {
     _realtimeTimer?.cancel();
     _realtimeTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _appState.engine.tickRealtime(const Duration(minutes: 1));
       });
@@ -200,7 +202,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin, Wi
     Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
         setState(() {
-          if (_floatingIncomes.isNotEmpty) _floatingIncomes.removeAt(0);
+          if (_floatingIncomes.isNotEmpty) {
+            _floatingIncomes.removeAt(0);
+          }
         });
       }
     });
@@ -230,7 +234,11 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin, Wi
       );
       return;
     }
-    await _appState.sellTree(treeId, price);
+    final ok = await _appState.sellTree(treeId, price);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Невозможно выставить дерево на продажу')));
+      return;
+    }
     _safePlay('sounds/click.mp3');
   }
 
@@ -508,7 +516,9 @@ class _VisualGardenState extends State<VisualGarden> with TickerProviderStateMix
         AnimatedBuilder(
           animation: _transitionOpacity,
           builder: (_, __) {
-            if (_lastWeather == null || _lastWeather == weather) return const SizedBox.shrink();
+            if (_lastWeather == null || _lastWeather == weather) {
+              return const SizedBox.shrink();
+            }
             return WeatherTransitionEffect(
               opacity: _transitionOpacity.value,
               fromWeather: _lastWeather!,
@@ -720,8 +730,11 @@ class _NftTreeCardState extends State<NftTreeCard> with TickerProviderStateMixin
       final c = widget.isSelected ? Colors.white : accent;
       border = Border.all(color: c, width: widget.isSelected ? 3 : 2.5);
       shadows = [...AppTheme.neonGlow(accent, blur: widget.isSelected ? 22 : 14), ...shadows];
-    } else if (rest) border = Border.all(color: accent.withOpacity(0.35), width: 1.5);
-    else border = Border.all(color: AppTheme.muted.withOpacity(0.4), width: 1.5);
+    } else if (rest) {
+      border = Border.all(color: accent.withOpacity(0.35), width: 1.5);
+    } else {
+      border = Border.all(color: AppTheme.muted.withOpacity(0.4), width: 1.5);
+    }
 
     Widget nftImage;
     if (noWater) {
@@ -731,8 +744,11 @@ class _NftTreeCardState extends State<NftTreeCard> with TickerProviderStateMixin
         loadingBuilder: (_, child, p) => p == null ? child : Container(color: const Color(0xFF0D120D), child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: accent, value: p.expectedTotalBytes != null ? p.cumulativeBytesLoaded / p.expectedTotalBytes! : null))),
         errorBuilder: (_, _, _) => Container(color: const Color(0xFF0D120D), child: Center(child: Text(tree.stats.emoji, style: const TextStyle(fontSize: 48)))));
     }
-    if (rest) nftImage = Opacity(opacity: 0.6, child: nftImage);
-    else if (dead) nftImage = ColorFiltered(colorFilter: const ColorFilter.matrix(<double>[0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0,0,0,1,0]), child: nftImage);
+    if (rest) {
+      nftImage = Opacity(opacity: 0.6, child: nftImage);
+    } else if (dead) {
+      nftImage = ColorFiltered(colorFilter: const ColorFilter.matrix(<double>[0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0,0,0,1,0]), child: nftImage);
+    }
 
     final stageEmoji = tree.growthStageEmoji;
 
@@ -1175,26 +1191,96 @@ class LuckyScreen extends StatefulWidget {
   @override State<LuckyScreen> createState() => _LuckyScreenState();
 }
 
-class _LuckyScreenState extends State<LuckyScreen> {
+class _LuckyScreenState extends State<LuckyScreen> with SingleTickerProviderStateMixin {
   String _result = '';
   static const bet = 100.0;
-  static const outcomes = [
-    _Outcome(prob: 0.45, reward: 0, label: 'Пусто'), _Outcome(prob: 0.25, reward: 60, label: '60 WLNT'), _Outcome(prob: 0.15, reward: 150, label: '150 WLNT'),
-    _Outcome(prob: 0.10, reward: 250, label: '250 WLNT'), _Outcome(prob: 0.03, reward: 500, label: '500 WLNT'),
-    _Outcome(prob: 0.01, reward: 1000, label: '1000 WLNT'), _Outcome(prob: 0.01, reward: 750, label: '750 WLNT'),
+  bool _spinning = false;
+  double _rotation = 0.0;
+  late final AnimationController _spinController;
+  static const _extendedOutcomes = [
+    // type: 'nothing' | 'wlnt' | 'water' | 'fertilizer' | 'bird'
+    _OutcomeExt(type: 'nothing', weight: 45, amount: 0, label: 'Пусто'),
+    _OutcomeExt(type: 'wlnt', weight: 25, amount: 60, label: '60 WLNT'),
+    _OutcomeExt(type: 'wlnt', weight: 15, amount: 150, label: '150 WLNT'),
+    _OutcomeExt(type: 'wlnt', weight: 10, amount: 250, label: '250 WLNT'),
+    _OutcomeExt(type: 'wlnt', weight: 3, amount: 500, label: '500 WLNT'),
+    _OutcomeExt(type: 'wlnt', weight: 1, amount: 1000, label: '1000 WLNT'),
+    _OutcomeExt(type: 'wlnt', weight: 1, amount: 750, label: '750 WLNT'),
+    _OutcomeExt(type: 'water', weight: 2, amount: 5, label: '5 Вода'),
+    _OutcomeExt(type: 'fertilizer', weight: 2, amount: 3, label: '3 Удобрения'),
+    _OutcomeExt(type: 'bird', weight: 1, amount: 2, label: '2 Птицы'),
   ];
 
-  void _spin() {
-    if (widget.game.wlntBalance < bet) { setState(() => _result = 'Недостаточно средств'); return; }
-    widget.game.wlntBalance -= bet;
-    final rnd = Random().nextDouble();
-    double cumulative = 0;
-    for (final o in outcomes) {
-      cumulative += o.prob;
-      if (rnd <= cumulative) { widget.game.wlntBalance += o.reward; setState(() => _result = 'Вы выиграли: ${o.label}'); return; }
+  @override
+  void initState() {
+    super.initState();
+    _spinController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+    _spinController.addListener(() {
+      setState(() {
+        _rotation = _spinController.value * 6.0; // turns
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _spinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _spin() async {
+    if (_spinning) return;
+    if (widget.game.wlntBalance < bet) {
+      setState(() => _result = 'Недостаточно средств');
+      return;
     }
-    setState(() => _result = 'Вы проиграли');
-    widget.audioService.playClick();
+    _spinning = true;
+    setState(() {
+      _result = 'Крутим...';
+      widget.game.wlntBalance -= bet;
+    });
+
+    // старт звука
+    try { widget.audioService.playAsset('sounds/spin.mp3'); } catch (_) {}
+
+    // анимация вращения
+    _spinController.reset();
+    await _spinController.forward();
+
+    // выбор по весам
+    final totalWeight = _extendedOutcomes.fold<double>(0.0, (s, e) => s + e.weight);
+    final rnd = Random().nextDouble() * totalWeight;
+    double acc = 0;
+    _OutcomeExt picked = _extendedOutcomes.first;
+    for (final o in _extendedOutcomes) {
+      acc += o.weight;
+      if (rnd <= acc) {
+        picked = o;
+        break;
+      }
+    }
+
+    // Применяем выигрыш
+    if (picked.type == 'wlnt') {
+      widget.game.wlntBalance += picked.amount.toDouble();
+      setState(() => _result = 'Вы выиграли: ${picked.label}');
+    } else if (picked.type == 'water') {
+      widget.game.inventory['water_unit'] = (widget.game.inventory['water_unit'] ?? 0) + picked.amount;
+      setState(() => _result = 'Вы получили: ${picked.label}');
+    } else if (picked.type == 'fertilizer') {
+      widget.game.inventory['fertilizer_unit'] = (widget.game.inventory['fertilizer_unit'] ?? 0) + picked.amount;
+      setState(() => _result = 'Вы получили: ${picked.label}');
+    } else if (picked.type == 'bird') {
+      widget.game.inventory['bird_unit'] = (widget.game.inventory['bird_unit'] ?? 0) + picked.amount;
+      setState(() => _result = 'Вы получили: ${picked.label}');
+    } else {
+      setState(() => _result = 'Ничего не выпало');
+    }
+
+    try { widget.audioService.playAsset('sounds/win.mp3'); } catch (_) {}
+    await Future.delayed(const Duration(milliseconds: 350));
+    _spinning = false;
+    setState(() {});
   }
 
   void _burnDialog() {
@@ -1212,9 +1298,13 @@ class _LuckyScreenState extends State<LuckyScreen> {
     const SizedBox(height: 16), Text('Баланс: ${_fmt(widget.game.wlntBalance)} WLNT', style: const TextStyle(color: AppTheme.gold, fontSize: 16)),
     const SizedBox(height: 16), const Text('Ставка: 100 WLNT', style: TextStyle(color: AppTheme.text)), const SizedBox(height: 8),
     const Text('Вероятности:', style: TextStyle(color: AppTheme.muted)),
-    ...outcomes.map((o) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(o.label, style: const TextStyle(color: AppTheme.text)), Text('${(o.prob*100).toStringAsFixed(0)}%', style: const TextStyle(color: AppTheme.muted))]))),
+    ..._extendedOutcomes.map((o) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(o.label, style: const TextStyle(color: AppTheme.text)), Text('${(o.prob*100).toStringAsFixed(0)}%', style: const TextStyle(color: AppTheme.muted))]))),
     const SizedBox(height: 16),
-    ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _spin, icon: const Icon(Icons.casino, color: Colors.black), label: const Text('КРУТИТЬ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black))),
+    Column(children: [
+      AnimatedRotation(duration: const Duration(milliseconds: 600), turns: _rotation, child: Icon(Icons.casino, size: 56, color: Colors.amber)),
+      const SizedBox(height: 8),
+      ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _spinning ? null : _spin, icon: const Icon(Icons.casino, color: Colors.black), label: Text(_spinning ? 'Ждём...' : 'КРУТИТЬ', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black))),
+    ]),
     const SizedBox(height: 16), Text(_result, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.text)),
     const SizedBox(height: 32), const Divider(color: AppTheme.panelBorder), const SizedBox(height: 16),
     const Text('Инвентарь:', style: TextStyle(color: AppTheme.muted)),
@@ -1227,7 +1317,13 @@ class _LuckyScreenState extends State<LuckyScreen> {
   String _fmt(double v) { final s = v.toStringAsFixed(0), b = StringBuffer(); for (int i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 == 0) b.write(' '); b.write(s[i]); } return b.toString(); }
 }
 
-class _Outcome { final double prob, reward; final String label; const _Outcome({required this.prob, required this.reward, required this.label}); }
+class _OutcomeExt {
+  final String type;
+  final double weight;
+  final int amount;
+  final String label;
+  const _OutcomeExt({required this.type, required this.weight, required this.amount, required this.label});
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // КОЛЛЕКЦИЯ + РЕСУРСЫ + РЕЙТИНГ (с исправленным порядком условий)
