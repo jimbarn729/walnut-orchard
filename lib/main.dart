@@ -400,59 +400,73 @@ class _VisualGardenState extends State<VisualGarden> with TickerProviderStateMix
           Expanded(child: _ZonePanel(title: '❄️ Отдых', trees: restTrees, selectedId: widget.selectedId, onTreeTap: widget.onTreeTap, weather: weather, isGrowth: false, game: game, audioService: widget.audioService)),
         ])),
         if (weather == WeatherType.thunderstorm)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: Stack(children: [
-              RainEffect(controller: _rainCtrl),
-              Positioned(top: 10, right: 20, child: Icon(Icons.cloud, size: 50, color: const Color(0xBBFFFFFF))),
-              AnimatedBuilder(animation: _rainCtrl, builder: (_, __) {
-                if (Random().nextDouble() < 0.05)
-                  return Positioned(top: 20, left: Random().nextInt(200).toDouble(), child: const Icon(Icons.flash_on, color: Colors.yellow, size: 24));
-                return const SizedBox.shrink();
-              }),
-            ]),
-          )))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: Stack(children: [
+                RainEffect(controller: _rainCtrl),
+                Positioned(top: 10, right: 20, child: Icon(Icons.cloud, size: 50, color: const Color(0xBBFFFFFF))),
+                AnimatedBuilder(animation: _rainCtrl, builder: (_, __) {
+                  if (Random().nextDouble() < 0.05)
+                    return Positioned(top: 20, left: Random().nextInt(200).toDouble(), child: const Icon(Icons.flash_on, color: Colors.yellow, size: 24));
+                  return const SizedBox.shrink();
+                }),
+              ]),
+            );
+          }))),
         if (weather == WeatherType.heatwave)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: Stack(children: [
-              Positioned(top: 10, right: 30, child: Icon(Icons.wb_sunny, size: 50, color: const Color(0xFFFFD740).withOpacity(0.9))),
-              Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment.topRight, radius: 0.6, colors: [Color(0x44FF9100), Colors.transparent]))),
-              CustomPaint(painter: CrackPainter(), size: Size.infinite),
-            ]),
-          )))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: Stack(children: [
+                Positioned(top: 10, right: 30, child: Icon(Icons.wb_sunny, size: 50, color: const Color(0xFFFFD740).withOpacity(0.9))),
+                Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment.topRight, radius: 0.6, colors: [Color(0x44FF9100), Colors.transparent]))),
+                CustomPaint(painter: CrackPainter(), size: Size.infinite),
+              ]),
+            );
+          }))),
         if (weather == WeatherType.forestFire)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: AnimatedBuilder(animation: _fireCtrl, builder: (_, __) => CustomPaint(painter: _FirePainter(_fireCtrl.value), size: Size.infinite)),
-          )))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: AnimatedBuilder(animation: _fireCtrl, builder: (_, __) => CustomPaint(painter: _FirePainter(_fireCtrl.value), size: Size.infinite)),
+            );
+          }))),
         if (weather == WeatherType.flood)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: _FloodEffect(controller: _floodCtrl),
-          )))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: _FloodEffect(controller: _floodCtrl),
+            );
+          }))),
         if (weather == WeatherType.fog)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: _FogEffect(controller: _fogCtrl),
-          )))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: _FogEffect(controller: _fogCtrl),
+            );
+          }))),
         if (weather == WeatherType.calm)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: Stack(children: [
-              Positioned(top: 10, left: 20, child: Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF))),
-              Positioned(top: 15, right: 40, child: Icon(Icons.wb_sunny, size: 35, color: const Color(0xFFFFD740).withOpacity(0.8))),
-            ]),
-          )))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: Stack(children: [
+                Positioned(top: 10, left: 20, child: Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF))),
+                Positioned(top: 15, right: 40, child: Icon(Icons.wb_sunny, size: 35, color: const Color(0xFFFFD740).withOpacity(0.8))),
+              ]),
+            );
+          }))),
         if (weather == WeatherType.cloudy)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
-            opacity: _transitionOpacity.value,
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF)),
-              Icon(Icons.cloud, size: 35, color: const Color(0x99FFFFFF)),
-              Icon(Icons.cloud, size: 45, color: const Color(0xAAFFFFFF)),
-            ]),
-          ))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) {
+            return Opacity(
+              opacity: _transitionOpacity.value,
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF)),
+                Icon(Icons.cloud, size: 35, color: const Color(0x99FFFFFF)),
+                Icon(Icons.cloud, size: 45, color: const Color(0xAAFFFFFF)),
+              ]),
+            );
+          })),
         // Анимированный эффект переходса при смене погоды
         AnimatedBuilder(
           animation: _transitionOpacity,
