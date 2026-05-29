@@ -338,7 +338,9 @@ class VisualGarden extends StatefulWidget {
 }
 
 class _VisualGardenState extends State<VisualGarden> with TickerProviderStateMixin {
-  late AnimationController _rainCtrl, _fireCtrl, _floodCtrl, _fogCtrl;
+  late AnimationController _rainCtrl, _fireCtrl, _floodCtrl, _fogCtrl, _transitionCtrl;
+  late Animation<double> _transitionOpacity;
+  WeatherType? _lastWeather;
 
   @override void initState() {
     super.initState();
@@ -346,10 +348,31 @@ class _VisualGardenState extends State<VisualGarden> with TickerProviderStateMix
     _fireCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat();
     _floodCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat(reverse: true);
     _fogCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat();
+    
+    _transitionCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _transitionOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _transitionCtrl, curve: Curves.easeInOut),
+    );
+    
+    _lastWeather = widget.game.currentWeather;
+    _transitionCtrl.forward();
+  }
+
+  @override void didUpdateWidget(covariant VisualGarden oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.game.currentWeather != widget.game.currentWeather) {
+      _transitionCtrl.forward(from: 0.0);
+      widget.audioService.playWeatherChange();
+      _lastWeather = widget.game.currentWeather;
+    }
   }
 
   @override void dispose() {
-    _rainCtrl.dispose(); _fireCtrl.dispose(); _floodCtrl.dispose(); _fogCtrl.dispose();
+    _rainCtrl.dispose();
+    _fireCtrl.dispose();
+    _floodCtrl.dispose();
+    _fogCtrl.dispose();
+    _transitionCtrl.dispose();
     super.dispose();
   }
 
@@ -358,6 +381,10 @@ class _VisualGardenState extends State<VisualGarden> with TickerProviderStateMix
     final growthTrees = game.trees.where((t) => t.isPlanted && t.status == TreeStatus.growth).toList();
     final restTrees = game.trees.where((t) => t.isPlanted && t.status == TreeStatus.rest).toList();
     final weather = game.currentWeather;
+    
+    // Плавный переход при смене погоды
+    final effectOpacity = weather == _lastWeather ? 1.0 : (_transitionOpacity.value);
+    
     return Container(
       margin: const EdgeInsets.fromLTRB(8, 4, 8, 0),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 24, offset: const Offset(0, 8))]),
@@ -373,39 +400,112 @@ class _VisualGardenState extends State<VisualGarden> with TickerProviderStateMix
           Expanded(child: _ZonePanel(title: '❄️ Отдых', trees: restTrees, selectedId: widget.selectedId, onTreeTap: widget.onTreeTap, weather: weather, isGrowth: false, game: game, audioService: widget.audioService)),
         ])),
         if (weather == WeatherType.thunderstorm)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: Stack(children: [
-            RainEffect(controller: _rainCtrl),
-            Positioned(top: 10, right: 20, child: Icon(Icons.cloud, size: 50, color: const Color(0xBBFFFFFF))),
-            AnimatedBuilder(animation: _rainCtrl, builder: (_, __) {
-              if (Random().nextDouble() < 0.05)
-                return Positioned(top: 20, left: Random().nextInt(200).toDouble(), child: const Icon(Icons.flash_on, color: Colors.yellow, size: 24));
-              return const SizedBox.shrink();
-            }),
-          ]))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: Stack(children: [
+              RainEffect(controller: _rainCtrl),
+              Positioned(top: 10, right: 20, child: Icon(Icons.cloud, size: 50, color: const Color(0xBBFFFFFF))),
+              AnimatedBuilder(animation: _rainCtrl, builder: (_, __) {
+                if (Random().nextDouble() < 0.05)
+                  return Positioned(top: 20, left: Random().nextInt(200).toDouble(), child: const Icon(Icons.flash_on, color: Colors.yellow, size: 24));
+                return const SizedBox.shrink();
+              }),
+            ]),
+          )))),
         if (weather == WeatherType.heatwave)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: Stack(children: [
-            Positioned(top: 10, right: 30, child: Icon(Icons.wb_sunny, size: 50, color: const Color(0xFFFFD740).withOpacity(0.9))),
-            Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment.topRight, radius: 0.6, colors: [Color(0x44FF9100), Colors.transparent]))),
-            CustomPaint(painter: CrackPainter(), size: Size.infinite),
-          ]))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: Stack(children: [
+              Positioned(top: 10, right: 30, child: Icon(Icons.wb_sunny, size: 50, color: const Color(0xFFFFD740).withOpacity(0.9))),
+              Container(decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment.topRight, radius: 0.6, colors: [Color(0x44FF9100), Colors.transparent]))),
+              CustomPaint(painter: CrackPainter(), size: Size.infinite),
+            ]),
+          )))),
         if (weather == WeatherType.forestFire)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _fireCtrl, builder: (_, __) => CustomPaint(painter: _FirePainter(_fireCtrl.value), size: Size.infinite)))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: AnimatedBuilder(animation: _fireCtrl, builder: (_, __) => CustomPaint(painter: _FirePainter(_fireCtrl.value), size: Size.infinite)),
+          )))),
         if (weather == WeatherType.flood)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: _FloodEffect(controller: _floodCtrl))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: _FloodEffect(controller: _floodCtrl),
+          )))),
         if (weather == WeatherType.fog)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: _FogEffect(controller: _fogCtrl))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: _FogEffect(controller: _fogCtrl),
+          )))),
         if (weather == WeatherType.calm)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: Stack(children: [
-            Positioned(top: 10, left: 20, child: Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF))),
-            Positioned(top: 15, right: 40, child: Icon(Icons.wb_sunny, size: 35, color: const Color(0xFFFFD740).withOpacity(0.8))),
-          ]))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: Stack(children: [
+              Positioned(top: 10, left: 20, child: Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF))),
+              Positioned(top: 15, right: 40, child: Icon(Icons.wb_sunny, size: 35, color: const Color(0xFFFFD740).withOpacity(0.8))),
+            ]),
+          )))),
         if (weather == WeatherType.cloudy)
-          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-            Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF)),
-            Icon(Icons.cloud, size: 35, color: const Color(0x99FFFFFF)),
-            Icon(Icons.cloud, size: 45, color: const Color(0xAAFFFFFF)),
-          ]))),
+          Positioned(top: 50, left: 0, right: 0, bottom: 0, child: IgnorePointer(child: AnimatedBuilder(animation: _transitionOpacity, builder: (_, __) => Opacity(
+            opacity: _transitionOpacity.value,
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              Icon(Icons.cloud, size: 40, color: const Color(0xAAFFFFFF)),
+              Icon(Icons.cloud, size: 35, color: const Color(0x99FFFFFF)),
+              Icon(Icons.cloud, size: 45, color: const Color(0xAAFFFFFF)),
+            ]),
+          ))),
+        // Анимированный эффект переходса при смене погоды
+        AnimatedBuilder(
+          animation: _transitionOpacity,
+          builder: (_, __) {
+            if (_lastWeather == null || _lastWeather == weather) return const SizedBox.shrink();
+            return WeatherTransitionEffect(
+              opacity: _transitionOpacity.value,
+              fromWeather: _lastWeather!,
+              toWeather: weather,
+            );
+          },
+        ),
       ])),
+    );
+  }
+}
+
+class WeatherTransitionEffect extends StatelessWidget {
+  const WeatherTransitionEffect({required this.opacity, required this.fromWeather, required this.toWeather});
+  final double opacity;
+  final WeatherType fromWeather;
+  final WeatherType toWeather;
+
+  Color _getWeatherColor(WeatherType weather) => switch (weather) {
+    WeatherType.thunderstorm => const Color(0xFF7C4DFF),
+    WeatherType.heatwave => const Color(0xFFFF9100),
+    WeatherType.forestFire => const Color(0xFFFF1744),
+    WeatherType.flood => const Color(0xFF00E5FF),
+    WeatherType.fog => const Color(0xFFB0BEC5),
+    WeatherType.calm => const Color(0xFFFFD740),
+    WeatherType.cloudy => const Color(0xFF90A4AE),
+  };
+
+  @override Widget build(BuildContext context) {
+    final fromColor = _getWeatherColor(fromWeather);
+    final toColor = _getWeatherColor(toWeather);
+    final currentColor = Color.lerp(fromColor, toColor, opacity) ?? toColor;
+    
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 0.8,
+              colors: [
+                currentColor.withOpacity(opacity * 0.15),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -16,6 +16,13 @@ class AudioService {
 
   Future<void> playClick() => playAsset('sounds/click.mp3');
   Future<void> playCoins() => playAsset('sounds/coins.mp3');
+  Future<void> playWeatherChange() async {
+    if (muted) return;
+    try {
+      await _player.stop();
+      await _player.play(AssetSource('sounds/click.mp3'));
+    } catch (_) {}
+  }
 
   void setMuted(bool value) {
     muted = value;
