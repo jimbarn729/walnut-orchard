@@ -17,6 +17,13 @@ class AppState extends ChangeNotifier {
   String userEmail = '';
   String referralCode = '';
   ThemeMode themeMode = ThemeMode.dark;
+  int lastDailyRewardTimestamp = 0;
+
+  bool get dailyRewardAvailable {
+    final last = DateTime.fromMillisecondsSinceEpoch(lastDailyRewardTimestamp);
+    final now = DateTime.now();
+    return now.difference(last).inDays >= 1 || lastDailyRewardTimestamp == 0;
+  }
 
   static Future<AppState> load() async {
     final service = PersistenceService();
@@ -33,6 +40,7 @@ class AppState extends ChangeNotifier {
     final userData = await persistence.loadUser();
     userEmail = userData['email'] ?? '';
     referralCode = userData['referralCode'] ?? '';
+    lastDailyRewardTimestamp = await persistence.loadDailyRewardTimestamp() ?? 0;
 
     final savedEngine = await persistence.loadGame();
     if (savedEngine != null && userEmail.isNotEmpty) {
@@ -56,6 +64,16 @@ class AppState extends ChangeNotifier {
 
   Future<void> saveGame() async {
     await persistence.saveGame(engine);
+  }
+
+  Future<bool> claimDailyReward() async {
+    if (!dailyRewardAvailable) return false;
+    engine.wlntBalance += 500;
+    lastDailyRewardTimestamp = DateTime.now().millisecondsSinceEpoch;
+    await persistence.saveDailyRewardTimestamp(lastDailyRewardTimestamp);
+    await saveGame();
+    notifyListeners();
+    return true;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -181,6 +199,25 @@ class AppState extends ChangeNotifier {
 
   Future<void> buyResource(String lotId) async {
     engine.buyResource(lotId, userEmail);
+    await saveGame();
+    notifyListeners();
+  }
+
+  Future<void> purchaseResourcePackage(String resourceType, int quantity, double pricePerUnit) async {
+    engine.purchaseResourcePackage(resourceType, quantity, pricePerUnit);
+    await saveGame();
+    notifyListeners();
+  }
+
+  Future<void> buyPetEgg() async {
+    engine.buyPetEgg();
+    await saveGame();
+    notifyListeners();
+  }
+
+  Future<void> claimChallenge(String id) async {
+    final ok = engine.claimChallenge(id);
+    if (!ok) return;
     await saveGame();
     notifyListeners();
   }

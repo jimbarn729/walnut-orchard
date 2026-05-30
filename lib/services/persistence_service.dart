@@ -9,6 +9,7 @@ class PersistenceService {
   static const _themeKey = 'walnut_theme_mode';
   static const _userEmailKey = 'walnut_user_email';
   static const _referralKey = 'walnut_referral_code';
+  static const _dailyRewardKey = 'walnut_daily_reward_ts';
 
   Future<void> saveGame(GameEngine engine) async {
     final prefs = await SharedPreferences.getInstance();
@@ -35,6 +36,16 @@ class PersistenceService {
   Future<String?> loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_themeKey);
+  }
+
+  Future<void> saveDailyRewardTimestamp(int timestamp) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_dailyRewardKey, timestamp);
+  }
+
+  Future<int?> loadDailyRewardTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_dailyRewardKey);
   }
 
   Future<void> saveUser(String email, String referralCode) async {

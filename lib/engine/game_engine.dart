@@ -5,21 +5,20 @@ import 'package:flutter/material.dart';
 
 import '../models/game_models.dart';
 
-const resourceActionMap = <String, String>{
-  'water_bucket': 'water_unit',
-  'water_barrel': 'water_unit',
-  'water_tank': 'water_unit',
-  'auto_water_basic': 'water_unit',
-  'auto_water_cistern': 'water_unit',
-  'fertilize_normal': 'fertilizer_unit',
-  'fertilize_super': 'fertilizer_unit',
-  'woodpecker_1': 'bird_unit',
-  'woodpecker_5': 'bird_unit',
-  'woodpecker_10': 'bird_unit',
-  'woodpecker_all': 'bird_unit',
-};
-
 class GameEngine {
+  static const Map<String, String> resourceActionMap = {
+    'water_bucket': 'water_unit',
+    'water_barrel': 'water_unit',
+    'water_tank': 'water_unit',
+    'auto_water_basic': 'water_unit',
+    'auto_water_cistern': 'water_unit',
+    'fertilize_normal': 'fertilizer_unit',
+    'fertilize_super': 'fertilizer_unit',
+    'woodpecker_1': 'bird_unit',
+    'woodpecker_5': 'bird_unit',
+    'woodpecker_10': 'bird_unit',
+    'woodpecker_all': 'bird_unit',
+  };
   static const solToWlntRate = 1000.0;
 
   GameEngine({
@@ -32,10 +31,12 @@ class GameEngine {
     List<ResourceLot>? resourceLots,
     List<LeaderboardEntry>? leaderboard,
     List<DailyChallenge>? dailyChallenges,
+    bool? petDefenderActive,
   })  : inventory = inventory ?? {'water_unit': 0, 'fertilizer_unit': 0, 'bird_unit': 0},
         resourceLots = resourceLots ?? [],
         leaderboard = leaderboard ?? [],
-        dailyChallenges = dailyChallenges ?? [];
+        dailyChallenges = dailyChallenges ?? [],
+        petDefenderActive = petDefenderActive ?? false;
 
 
   static const seasonLength = 30;
@@ -48,6 +49,7 @@ class GameEngine {
   List<ResourceLot> resourceLots;
   List<LeaderboardEntry> leaderboard;
   List<DailyChallenge> dailyChallenges;
+  bool petDefenderActive;
   DateTime? lastRealtimeTick;
 
   final List<void Function(String)> _incomeListeners = [];
@@ -138,11 +140,14 @@ class GameEngine {
     var cats = tree.caterpillars;
     water = (water - tree.stats.waterConsumption * weather.waterMultiplier).clamp(0.0, 100.0);
     if (gameDay % tree.stats.caterpillarIntervalDays == 0) cats++;
-    if (weather == WeatherType.fog) cats *= 2;
+    if (weather == WeatherType.fog) cats += 2;
     if (day < seasonLength && water > 0) {
       day++;
     } else if (day >= seasonLength) {
       day = seasonLength;
+    }
+    if (petDefenderActive && cats > 0) {
+      cats = max(cats - 1, 0);
     }
     return tree.copyWith(currentWater: water, seasonDay: day, caterpillars: cats);
   }
@@ -229,6 +234,12 @@ class GameEngine {
     gameDay++;
     currentWeather = weatherForCycleDay(gameDay);
     _applyAutoWater();
+    if (Random().nextDouble() < 0.03) {
+      trees = trees.map((tree) {
+        if (!tree.isPlanted || tree.status != TreeStatus.growth) return tree;
+        return tree.copyWith(caterpillars: tree.caterpillars + 5);
+      }).toList();
+    }
     trees = trees.map(_advanceTree).toList();
     dailyChallenges = dailyChallenges.map((challenge) => challenge.copyWith(current: 0, completed: false, claimed: false)).toList();
     final playerEntry = leaderboard.firstWhere((e) => e.isPlayer, orElse: () => LeaderboardEntry(name: '', wlntBalance: 0.0));
@@ -501,8 +512,9 @@ class GameEngine {
     final i = trees.indexWhere((t) => t.id == id);
     if (i == -1) return;
     final tree = trees[i];
-    if (wlntBalance < tree.price) return;
-    wlntBalance -= tree.price;
+    final totalPrice = tree.price * 1.05;
+    if (wlntBalance < totalPrice) return;
+    wlntBalance -= totalPrice;
     trees[i] = tree.copyWith(
       owner: buyer,
       forSale: false,
@@ -567,10 +579,12 @@ class GameEngine {
     if (idx == -1) return;
     final lot = resourceLots[idx];
     if (lot.sellerEmail == buyerEmail) return;
-    if (wlntBalance < lot.totalPrice) return;
-    wlntBalance -= lot.totalPrice;
+    final totalPrice = lot.totalPrice * 1.05;
+    if (wlntBalance < totalPrice) return;
+    wlntBalance -= totalPrice;
     inventory[lot.resourceType] = (inventory[lot.resourceType] ?? 0) + lot.quantity;
     resourceLots.removeAt(idx);
+    _incrementChallenge('trade', 1);
   }
 
   void cancelResourceSell(String resourceLotId) {
@@ -579,6 +593,31 @@ class GameEngine {
     final lot = resourceLots[idx];
     inventory[lot.resourceType] = (inventory[lot.resourceType] ?? 0) + lot.quantity;
     resourceLots.removeAt(idx);
+  }
+
+  double dynamicResourcePrice(double basePrice) {
+    const maxSwing = 0.10;
+    final cycle = (gameDay / 7.0) * pi;
+    final factor = 1 + sin(cycle) * maxSwing;
+    return (basePrice * factor).clamp(basePrice * 0.9, basePrice * 1.1);
+  }
+
+  void purchaseResourcePackage(String resourceType, int quantity, double pricePerUnit) {
+    final totalPrice = quantity * pricePerUnit;
+    if (quantity <= 0 || wlntBalance < totalPrice) return;
+    wlntBalance -= totalPrice;
+    inventory[resourceType] = (inventory[resourceType] ?? 0) + quantity;
+  }
+
+  void buyPetEgg() {
+    const price = 2000.0;
+    if (petDefenderActive || wlntBalance < price) return;
+    wlntBalance -= price;
+    petDefenderActive = true;
+  }
+
+  void trackChallenge(String id, [int amount = 1]) {
+    _incrementChallenge(id, amount);
   }
 
   void _incrementChallenge(String id, int amount) {
@@ -615,6 +654,7 @@ class GameEngine {
         'resourceLots': resourceLots.map((r) => r.toJson()).toList(),
         'leaderboard': leaderboard.map((l) => l.toJson()).toList(),
         'dailyChallenges': dailyChallenges.map((c) => c.toJson()).toList(),
+        'petDefenderActive': petDefenderActive,
       };
 
   factory GameEngine.fromJson(Map<String, dynamic> json) => GameEngine(
@@ -628,7 +668,8 @@ class GameEngine {
         leaderboard: (json['leaderboard'] as List).map((item) => LeaderboardEntry.fromJson(Map<String, dynamic>.from(item as Map))).toList(),
         dailyChallenges: json['dailyChallenges'] != null
           ? (json['dailyChallenges'] as List).map((item) => DailyChallenge.fromJson(Map<String, dynamic>.from(item as Map))).toList()
-          : null,
+          : initialDailyChallenges(),
+        petDefenderActive: json['petDefenderActive'] as bool? ?? false,
       );
 
   static List<TreeModel> initialTrees() => [
@@ -730,6 +771,12 @@ class GameEngine {
         const ResourceLot(id: 'sys_b1', sellerEmail: 'system', resourceType: 'bird_unit', quantity: 1, pricePerUnit: 1000),
       ];
 
+  static List<DailyChallenge> initialDailyChallenges() => [
+        DailyChallenge(id: 'harvest', description: 'Соберите 2 урожая', target: 2, reward: 150),
+        DailyChallenge(id: 'trade', description: 'Продайте или купите 2 ресурса на рынке', target: 2, reward: 120),
+        DailyChallenge(id: 'spin', description: 'Используйте колесо удачи 1 раз', target: 1, reward: 100),
+      ];
+
   static List<LeaderboardEntry> initialLeaderboard(String playerEmail) {
     final rng = Random(42);
     final bots = ['Bot_Alice', 'Bot_Bob', 'Bot_Carol', 'Bot_Dave', 'Bot_Eve'];
@@ -757,5 +804,7 @@ class GameEngine {
         inventory: {'water_unit': 2, 'fertilizer_unit': 1, 'bird_unit': 0},
         resourceLots: initialResourceLots(),
         leaderboard: initialLeaderboard(playerEmail),
+        dailyChallenges: initialDailyChallenges(),
+        petDefenderActive: false,
       );
 }
