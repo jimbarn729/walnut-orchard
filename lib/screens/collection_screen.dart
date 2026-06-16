@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/game_engine.dart';
+import '../models/game_models.dart';
 import '../theme/app_theme.dart';
 
 class CollectionScreen extends StatelessWidget {

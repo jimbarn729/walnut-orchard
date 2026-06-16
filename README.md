@@ -1,22 +1,35 @@
-<<<<<<< HEAD
-# walnut_farm
+ # walnut-orchard
 
-A new Flutter project.
+Игра "Walnut Farm" — Flutter проект. Этот README объясняет, как подготовить окружение и запустить приложение локально.
 
-## Getting Started
+## Требования
+- Установленный Flutter (рек. версия совместимая с SDK >= 3.12).
+- Установленное `dart` и `flutter` в PATH.
 
-This project is a starting point for a Flutter application.
+## Быстрая инструкция по запуску
+1. Установите Flutter: https://docs.flutter.dev/get-started/install
+2. В корне проекта выполните:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+cd /path/to/walnut-orchard
+flutter pub get
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Для запуска на вебе:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-=======
-# walnut-orchard
-games
->>>>>>> 003b7fb46b902eb21af83d8526562872351686ec
+```bash
+flutter run -d web-server --web-port 8080
+```
+
+## Примечания
+- В репозитории используется `cached_network_image` и другие зависимости, проверьте `pubspec.yaml`.
+- Если в вашей системе отсутствуют `flutter`/`dart`, запустите `scripts/setup.sh` для проверки окружения (скрипт не установит Flutter автоматически).
+
+## Что я сделал
+- Упростил `lib/main.dart`, чтобы приложение использовало модульные экраны из `lib/screens`.
+- Исправил отображение изображений в `lib/screens/market_screen.dart` (используется `CachedNetworkImage`).
+- Добавил индикатор ежедневного бонуса и состояние звука в `WalletScreen`.
+- Добавил этот README и скрипт проверки окружения.
+
+Если захотите, могу попытаться запустить `flutter pub get` и `flutter analyze` в контейнере, но сейчас в окружении эти инструменты отсутствуют.

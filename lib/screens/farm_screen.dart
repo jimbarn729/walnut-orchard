@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/game_engine.dart';
+import '../models/game_models.dart';
 import '../theme/app_theme.dart';
 
 class FarmScreen extends StatelessWidget {
@@ -71,7 +72,7 @@ class FarmScreen extends StatelessWidget {
 }
 
 class _ZoneHeader extends StatelessWidget {
-  const _zoneHeader(this.title, this.count);
+  const _ZoneHeader(this.title, this.count);
   final String title;
   final int count;
 

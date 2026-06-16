@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../engine/game_engine.dart';
+import '../models/game_models.dart';
 import '../theme/app_theme.dart';
 
 class MarketScreen extends StatelessWidget {
@@ -91,6 +93,18 @@ class _TreeMarketTab extends StatelessWidget {
                   padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: CachedNetworkImage(
+                          imageUrl: tree.imageUrl,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(color: AppTheme.bg, width: 64, height: 64),
+                          errorWidget: (_, __, ___) => Container(color: AppTheme.bg, width: 64, height: 64, child: Center(child: Text(tree.stats.emoji, style: const TextStyle(fontSize: 28)))),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

@@ -18,6 +18,7 @@ class WalletScreen extends StatelessWidget {
     required this.onConvertSolToWlnt,
     required this.onConvertWlntToSol,
     required this.onToggleAudio,
+    required this.audioMuted,
     required this.dailyRewardAvailable,
     required this.onClaimDailyReward,
   });
@@ -36,6 +37,7 @@ class WalletScreen extends StatelessWidget {
   final ValueChanged<double> onConvertSolToWlnt;
   final ValueChanged<double> onConvertWlntToSol;
   final VoidCallback onToggleAudio;
+  final bool audioMuted;
   final bool dailyRewardAvailable;
   final Future<bool> Function() onClaimDailyReward;
 
@@ -87,7 +89,7 @@ class WalletScreen extends StatelessWidget {
                 children: [
                   const Expanded(child: Text('Кошелёк', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900))),
                   IconButton(onPressed: onToggleTheme, icon: Icon(themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, color: AppTheme.gold)),
-                  IconButton(onPressed: onToggleAudio, icon: Icon(Icons.volume_off, color: AppTheme.gold)),
+                  IconButton(onPressed: onToggleAudio, icon: Icon(audioMuted ? Icons.volume_off : Icons.volume_up, color: AppTheme.gold)),
                   IconButton(onPressed: onLogout, icon: const Icon(Icons.logout, color: AppTheme.muted)),
                 ],
               ),
@@ -118,6 +120,33 @@ class WalletScreen extends StatelessWidget {
                 Expanded(child: _ActionChip(label: 'Вывести', icon: Icons.arrow_circle_up_outlined, onTap: () => _showAmountDialog(context, 'Вывести WLNT', 'Сумма WLNT', onWithdrawWlnt))),
               ]),
               const SizedBox(height: 22),
+              if (dailyRewardAvailable)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: AppTheme.panel, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppTheme.gold.withOpacity(0.25))),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Ежедневный бонус', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.text)),
+                      const SizedBox(height: 10),
+                      const Text('Получите 500 WLNT раз в сутки.', style: TextStyle(color: AppTheme.muted)),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: onClaimDailyReward,
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853)),
+                        child: const Text('Забрать награду'),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: AppTheme.panel, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppTheme.panelBorder)),
+                  child: const Text('Ежедневный бонус уже получен. Возвращайтесь завтра.', style: TextStyle(color: AppTheme.muted)),
+                ),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(color: AppTheme.panel, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppTheme.panelBorder)),

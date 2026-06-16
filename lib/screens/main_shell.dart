@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app_state.dart';
-import '../engine/game_engine.dart';
 import '../services/audio_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/phone_frame.dart';
 import 'collection_screen.dart';
 import 'farm_screen.dart';
@@ -126,8 +124,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   },
                   onPerformCare: (treeId, action) async {
                     await _appState.applyCare(treeId, action);
-                    setState(() {});
+                    if (mounted) setState(() {});
                     _audioService.playClick();
+                    return true;
                   },
                 ),
                 MarketScreen(
@@ -223,6 +222,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                       _audioService.setMuted(!_audioService.muted);
                     });
                   },
+                  audioMuted: _audioService.muted,
                   onLogout: () async {
                     await _appState.logout();
                     setState(() {});
@@ -253,6 +253,12 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   onConvertWlntToSol: (amount) async {
                     await _appState.convertWlntToSol(amount);
                     setState(() {});
+                  },
+                  dailyRewardAvailable: _appState.dailyRewardAvailable,
+                  onClaimDailyReward: () async {
+                    final ok = await _appState.claimDailyReward();
+                    if (ok && mounted) setState(() {});
+                    return ok;
                   },
                 ),
               ],

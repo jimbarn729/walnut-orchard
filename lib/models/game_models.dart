@@ -1,7 +1,6 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
-import '../engine/game_engine.dart';
+const seasonLength = 30;
 
 enum TreeRarity { common, uncommon, rare, epic, legendary, mysterious }
 
@@ -208,11 +207,11 @@ class TreeModel {
 
   int get hoursLeft {
     if (status == TreeStatus.growth) {
-      final targetDay = GameEngine.seasonLength;
+      final targetDay = seasonLength;
       final daysRemaining = targetDay - seasonDay;
       return daysRemaining * 24;
     } else if (status == TreeStatus.rest) {
-      return (GameEngine.seasonLength - seasonDay) * 24;
+      return (seasonLength - seasonDay) * 24;
     }
     return 0;
   }
@@ -232,7 +231,7 @@ class TreeModel {
     return '🌳';
   }
 
-  bool get canHarvest => status == TreeStatus.growth && seasonDay >= GameEngine.seasonLength && currentWater >= 100.0 && caterpillars == 0;
+  bool get canHarvest => status == TreeStatus.growth && seasonDay >= seasonLength && currentWater >= 100.0 && caterpillars == 0;
 
   TreeModel copyWith({
     int? rebirthsLeft,
