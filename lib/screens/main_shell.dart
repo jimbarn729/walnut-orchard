@@ -9,6 +9,7 @@ import 'collection_screen.dart';
 import 'farm_screen.dart';
 import 'lucky_screen.dart';
 import 'market_screen.dart';
+import 'nft_marketplace_screen.dart';
 import 'wallet_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -168,6 +169,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                     _audioService.playClick();
                   },
                 ),
+                NftMarketplaceScreen(
+                  game: game,
+                  onRefresh: () => setState(() {}),
+                ),
                 LuckyScreen(
                   game: game,
                   onBurned: (id) async {
@@ -291,6 +296,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.eco_outlined), label: 'Сад'),
           NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Магазин'),
+          NavigationDestination(icon: Icon(Icons.token_outlined), label: 'NFT'),
           NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Удача'),
           NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'Коллекция'),
           NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Кошелёк'),

@@ -72,11 +72,12 @@ class _TreesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final playerTrees = game.trees.where((t) => !t.owner.startsWith('npc_')).toList();
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: game.trees.length,
+      itemCount: playerTrees.length,
       itemBuilder: (context, index) {
-        final tree = game.trees[index];
+        final tree = playerTrees[index];
         return Card(
           color: AppTheme.panel,
           margin: const EdgeInsets.only(bottom: 12),

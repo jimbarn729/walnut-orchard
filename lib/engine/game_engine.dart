@@ -32,11 +32,14 @@ class GameEngine {
     List<LeaderboardEntry>? leaderboard,
     List<DailyChallenge>? dailyChallenges,
     bool? petDefenderActive,
+    List<NftListing>? nftListings,
+    this.playerEmail = '',
   })  : inventory = inventory ?? {'water_unit': 0, 'fertilizer_unit': 0, 'bird_unit': 0},
         resourceLots = resourceLots ?? [],
         leaderboard = leaderboard ?? [],
         dailyChallenges = dailyChallenges ?? [],
-        petDefenderActive = petDefenderActive ?? false;
+        petDefenderActive = petDefenderActive ?? false,
+        nftListings = nftListings ?? [];
 
 
   static const seasonLength = 30;
@@ -50,6 +53,8 @@ class GameEngine {
   List<LeaderboardEntry> leaderboard;
   List<DailyChallenge> dailyChallenges;
   bool petDefenderActive;
+  List<NftListing> nftListings;
+  String playerEmail;
   DateTime? lastRealtimeTick;
 
   final List<void Function(String)> _incomeListeners = [];
@@ -64,6 +69,16 @@ class GameEngine {
   }
 
   final ValueNotifier<ActionEvent?> actionEvent = ValueNotifier<ActionEvent?>(null);
+
+  // Season helpers
+  SeasonType get currentSeason {
+    final cycle = (gameDay / seasonLength).floor();
+    return cycle.isEven ? SeasonType.growth : SeasonType.rest;
+  }
+
+  int get dayInSeason => ((gameDay - 1) % seasonLength) + 1;
+
+  double get seasonProgress => dayInSeason / seasonLength;
 
   void _triggerActionEvent(String treeId, ActionType type) {
     actionEvent.value = ActionEvent(treeId: treeId, type: type);
@@ -495,10 +510,8 @@ class GameEngine {
   bool sellTree(String id, double price) {
     final i = trees.indexWhere((t) => t.id == id);
     if (i == -1) return false;
-    // Do not allow selling a tree that is currently planted (in growth/rest cycle).
-    // New NFTs (isPlanted == false) can be listed immediately.
     if (trees[i].isPlanted) return false;
-    trees[i] = trees[i].copyWith(forSale: true, price: price);
+    trees[i] = trees[i].copyWith(forSale: true, price: price, owner: playerEmail);
     return true;
   }
 
@@ -526,6 +539,23 @@ class GameEngine {
       caterpillars: 0,
       plantedAtGameDay: gameDay,
     );
+  }
+
+  /// Buy a tree from the NFT marketplace without auto-planting.
+  bool buyNftTree(String id) {
+    final i = trees.indexWhere((t) => t.id == id);
+    if (i == -1) return false;
+    final tree = trees[i];
+    if (!tree.forSale) return false;
+    final totalPrice = tree.price * 1.05;
+    if (wlntBalance < totalPrice) return false;
+    wlntBalance -= totalPrice;
+    trees[i] = tree.copyWith(
+      owner: playerEmail,
+      forSale: false,
+      price: 0.0,
+    );
+    return true;
   }
 
   void burnTree(String id) {
@@ -655,6 +685,7 @@ class GameEngine {
         'leaderboard': leaderboard.map((l) => l.toJson()).toList(),
         'dailyChallenges': dailyChallenges.map((c) => c.toJson()).toList(),
         'petDefenderActive': petDefenderActive,
+        'playerEmail': playerEmail,
       };
 
   factory GameEngine.fromJson(Map<String, dynamic> json) => GameEngine(
@@ -670,6 +701,7 @@ class GameEngine {
           ? (json['dailyChallenges'] as List).map((item) => DailyChallenge.fromJson(Map<String, dynamic>.from(item as Map))).toList()
           : initialDailyChallenges(),
         petDefenderActive: json['petDefenderActive'] as bool? ?? false,
+        playerEmail: json['playerEmail'] as String? ?? '',
       );
 
   static List<TreeModel> initialTrees() => [
@@ -765,6 +797,52 @@ class GameEngine {
         ),
       ];
 
+  /// Simulated marketplace trees owned by NPC sellers.
+  static List<TreeModel> npcMarketplaceTrees() => [
+        TreeModel(
+          id: 'npc_1', imageUrl: '', name: 'Walnut #NPC-1',
+          rarity: TreeRarity.common, maxRebirths: 3, rebirthsLeft: 3,
+          currentWater: 100, seasonDay: 0, caterpillars: 0,
+          status: TreeStatus.growth, isPlanted: false, emotion: 'Without emotion',
+          plantedAtGameDay: 0, forSale: true, price: 1500, owner: 'npc_alice',
+        ),
+        TreeModel(
+          id: 'npc_2', imageUrl: '', name: 'Walnut #NPC-2',
+          rarity: TreeRarity.uncommon, maxRebirths: 5, rebirthsLeft: 5,
+          currentWater: 100, seasonDay: 0, caterpillars: 0,
+          status: TreeStatus.growth, isPlanted: false, emotion: 'Without emotion',
+          plantedAtGameDay: 0, forSale: true, price: 4200, owner: 'npc_bob',
+        ),
+        TreeModel(
+          id: 'npc_3', imageUrl: '', name: 'Walnut #NPC-3',
+          rarity: TreeRarity.rare, maxRebirths: 10, rebirthsLeft: 10,
+          currentWater: 100, seasonDay: 0, caterpillars: 0,
+          status: TreeStatus.growth, isPlanted: false, emotion: 'Without emotion',
+          plantedAtGameDay: 0, forSale: true, price: 12000, owner: 'npc_carol',
+        ),
+        TreeModel(
+          id: 'npc_4', imageUrl: '', name: 'Walnut #NPC-4',
+          rarity: TreeRarity.epic, maxRebirths: 15, rebirthsLeft: 15,
+          currentWater: 100, seasonDay: 0, caterpillars: 0,
+          status: TreeStatus.growth, isPlanted: false, emotion: 'Without emotion',
+          plantedAtGameDay: 0, forSale: true, price: 35000, owner: 'npc_dave',
+        ),
+        TreeModel(
+          id: 'npc_5', imageUrl: '', name: 'Walnut #NPC-5',
+          rarity: TreeRarity.legendary, maxRebirths: 20, rebirthsLeft: 20,
+          currentWater: 100, seasonDay: 0, caterpillars: 0,
+          status: TreeStatus.growth, isPlanted: false, emotion: 'Without emotion',
+          plantedAtGameDay: 0, forSale: true, price: 90000, owner: 'npc_eve',
+        ),
+        TreeModel(
+          id: 'npc_6', imageUrl: '', name: 'Walnut #NPC-6',
+          rarity: TreeRarity.mysterious, maxRebirths: 30, rebirthsLeft: 30,
+          currentWater: 100, seasonDay: 0, caterpillars: 0,
+          status: TreeStatus.growth, isPlanted: false, emotion: 'Without emotion',
+          plantedAtGameDay: 0, forSale: true, price: 250000, owner: 'npc_frank',
+        ),
+      ];
+
   static List<ResourceLot> initialResourceLots() => [
         const ResourceLot(id: 'sys_w1', sellerEmail: 'system', resourceType: 'water_unit', quantity: 5, pricePerUnit: 150),
         const ResourceLot(id: 'sys_f1', sellerEmail: 'system', resourceType: 'fertilizer_unit', quantity: 2, pricePerUnit: 800),
@@ -796,10 +874,11 @@ class GameEngine {
   }
 
   static GameEngine initial({required String playerEmail, required double initialWlnt}) => GameEngine(
+        playerEmail: playerEmail,
         gameDay: 1,
         wlntBalance: initialWlnt,
         solBalance: 2.5,
-        trees: initialTrees(),
+        trees: [...initialTrees(), ...npcMarketplaceTrees()],
         currentWeather: weatherForCycleDay(1),
         inventory: {'water_unit': 2, 'fertilizer_unit': 1, 'bird_unit': 0},
         resourceLots: initialResourceLots(),

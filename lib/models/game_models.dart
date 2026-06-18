@@ -91,6 +91,19 @@ extension TreeStatusX on TreeStatus {
   };
 }
 
+enum SeasonType { growth, rest }
+
+extension SeasonTypeX on SeasonType {
+  String get label => switch (this) {
+    SeasonType.growth => 'Сезон роста',
+    SeasonType.rest => 'Сезон отдыха',
+  };
+  String get emoji => switch (this) {
+    SeasonType.growth => '🌱',
+    SeasonType.rest => '❄️',
+  };
+}
+
 enum WeatherType { thunderstorm, heatwave, forestFire, flood, fog, calm, cloudy }
 
 extension WeatherTypeX on WeatherType {
@@ -134,7 +147,27 @@ extension WeatherTypeX on WeatherType {
     WeatherType.cloudy => const Color(0xFF90A4AE),
   };
 
+  String get emoji => switch (this) {
+    WeatherType.thunderstorm => '⛈️',
+    WeatherType.heatwave => '🏜️',
+    WeatherType.forestFire => '🔥',
+    WeatherType.flood => '🌊',
+    WeatherType.fog => '🌫️',
+    WeatherType.calm => '☀️',
+    WeatherType.cloudy => '⛅',
+  };
+
   bool get isCritical => this == WeatherType.forestFire;
+
+  double get caterpillarMultiplier => switch (this) {
+    WeatherType.thunderstorm => 2.0,
+    WeatherType.flood => 4.0,
+    WeatherType.heatwave => 0.0,
+    WeatherType.forestFire => 0.0,
+    WeatherType.fog => 1.0,
+    WeatherType.calm => 1.0,
+    WeatherType.cloudy => 1.0,
+  };
 }
 
 WeatherType weatherForCycleDay(int cycleDay) {
@@ -460,4 +493,20 @@ class Outcome {
   final String label;
 
   const Outcome({required this.prob, required this.reward, required this.label});
+}
+
+class NftListing {
+  final String id;
+  final TreeModel tree;
+  final double price;
+  final String sellerEmail;
+  final DateTime listedAt;
+
+  const NftListing({
+    required this.id,
+    required this.tree,
+    required this.price,
+    required this.sellerEmail,
+    required this.listedAt,
+  });
 }
